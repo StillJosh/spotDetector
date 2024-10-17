@@ -21,7 +21,7 @@ def setup_training_components(
         config: Dict[str, Any], device: torch.device
 ) -> Tuple[nn.Module, nn.Module, Optimizer, _LRScheduler]:
     """
-    Setup the model, loss function, optimizer, and scheduler.
+    Set up the model, loss function, optimizer, and scheduler.
 
     Parameters
     ----------
