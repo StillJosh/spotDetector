@@ -10,6 +10,7 @@ import mlflow
 import torch
 from tqdm import tqdm
 
+from utils.checkpoint_saver import CheckpointSaver
 from utils.config_parser import load_config
 from utils.early_stopping import EarlyStopping
 from utils.training_setup import setup_training_components
@@ -40,9 +41,7 @@ def main(config: Dict[str, Any]):
 
     # Checkpoint directory
     checkpoint_dir = Path(config['checkpoint']['dir'])
-    checkpoint_dir.mkdir(parents=True, exist_ok=True)
-
-    best_metric = None
+    checkpoint_saver = CheckpointSaver(checkpoint_dir, config)
 
     with mlflow.start_run():
         mlflow.log_params(config['training'])
@@ -74,8 +73,6 @@ def main(config: Dict[str, Any]):
             # Validation phase
             model.eval()
             val_running_loss = 0.0
-            correct = 0
-            total = 0
 
             with torch.no_grad():
                 for inputs, labels in val_loader:
@@ -86,61 +83,28 @@ def main(config: Dict[str, Any]):
 
                     val_running_loss += loss.item() * inputs.size(0)
                     _, predicted = torch.max(outputs.data, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
 
             val_loss = val_running_loss / len(val_loader.dataset)
-            val_accuracy = 100 * correct / total
             mlflow.log_metric('val_loss', val_loss, step=epoch)
-            mlflow.log_metric('val_accuracy', val_accuracy, step=epoch)
 
-            # Scheduler step
+            # LR Scheduler step
             if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
                 scheduler.step(val_loss)
             else:
                 scheduler.step()
 
-            # Early stopping
-            if config['checkpoint']['monitor_metric'] == 'val_loss':
-                metric_to_monitor = val_loss
-            elif config['checkpoint']['monitor_metric'] == 'val_accuracy':
-                metric_to_monitor = -val_accuracy  # Negative because we want to maximize accuracy
-            else:
-                raise ValueError("Unsupported monitor metric for early stopping.")
-
-            early_stopping(metric_to_monitor)
+            # Early stopping check
+            early_stopping(val_loss)
             if early_stopping.early_stop:
                 print("Early stopping triggered.")
                 break
 
             # Checkpoint saving
-            if best_metric is None:
-                best_metric = metric_to_monitor
-                is_best = True
-            else:
-                if config['checkpoint']['mode'] == 'min':
-                    is_best = metric_to_monitor < best_metric
-                else:
-                    is_best = metric_to_monitor > best_metric
-
-            if is_best:
-                best_metric = metric_to_monitor
-                if config['checkpoint']['save_best_only']:
-                    # Save the best model
-                    save_path = checkpoint_dir / 'best_model.pth'
-                    torch.save(model.state_dict(), save_path)
-                    mlflow.log_artifact(str(save_path))
-
-                    # Export to TorchScript
-                    scripted_model = torch.jit.script(model)
-                    script_save_path = checkpoint_dir / 'best_model_scripted.pt'
-                    scripted_model.save(str(script_save_path))
-                    mlflow.log_artifact(str(script_save_path))
+            checkpoint_saver.save(model, val_loss)
 
             print(
                 f"Epoch [{epoch + 1}/{config['training']['epochs']}] - "
                 f"Train Loss: {epoch_loss:.4f} - Val Loss: {val_loss:.4f} - "
-                f"Val Acc: {val_accuracy:.2f}%"
             )
 
     print("Training completed.")
