@@ -1,0 +1,42 @@
+# Config file for all model training settings
+
+model:
+  name: 'deepspot'
+  input_channels: 1
+  dropout_rate: 0.2
+  conv_block4_filters: 128
+  identity_block_filters: 128
+
+training:
+  batch_size: 32
+  epochs: 50
+  loss: 'deepspot'
+  optimizer: 'adam'
+  scheduler: 'step_lr'
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  scheduler_params:
+    step_size: 10
+    gamma: 0.1
+
+data:
+  dataset: 'deepspot'
+  train_dir: 'data/train'
+  val_dir: 'data/val'
+  test_dir: 'data/test'
+  input_size: [224, 224]
+  num_workers: 4
+
+
+logging:
+  mlflow_tracking_uri: 'file:./mlruns'
+  experiment_name: 'my_experiment'
+
+device:
+  gpu_ids: [0, 1]
+
+checkpoint:
+  dir: 'checkpoints'
+  save_best_only: True
+  monitor_metric: 'val_loss'
+  mode: 'min'
