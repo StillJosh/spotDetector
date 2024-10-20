@@ -38,6 +38,7 @@ class Inferencer:
     def __init__(self, model: nn.Module, images: torch.Tensor, device: torch.device):
         self.model = model.to(device)
         self.model.eval()
+        self.images = images
         self.device = device
 
     def infer_on_patches(
@@ -56,11 +57,12 @@ class Inferencer:
         List[torch.Tensor]
             List of output image patches.
         """
+        images = self.images.clone() if images is None else images
         with torch.no_grad():
             images = images.to(self.device)
             output = self.model(images)
 
-        return output.cpu().numpy()
+        return output.cpu()
 
     def infer_on_full_image(
             self,
@@ -345,9 +347,26 @@ class Inferencer:
         Optional[plt.Figure]
             Returns the figure object if neither saving nor showing, otherwise returns None.
         """
+        images = self.images.clone() if images is None else images
         output = self.infer_on_patches(images)
+
+        # Squeeze channels if they are singleton
         if images.shape[1] == 1:
             images = images.squeeze(1)
             output = output.squeeze(1)
 
-        pl.plot_multiple_comparisons(images, output)
+        # Convert the tensors to NumPy arrays for plotting
+        images = images.cpu().numpy()
+        output = output.cpu().numpy()
+
+        # Use plot_multiple_comparisons to create the plot
+        fig = pl.plot_multiple_comparisons(
+            original_images=images,
+            inference_images=output,
+            save_path=save_path,
+            show=show
+        )
+
+        # Return the figure object if it was neither shown nor saved
+        return fig
+
