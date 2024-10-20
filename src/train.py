@@ -10,22 +10,15 @@ import mlflow
 import torch
 from tqdm import tqdm
 
-from utils.checkpoint_saver import CheckpointSaver
+from utils.tools import CheckpointSaver, EarlyStopping, get_device
 from utils.config_parser import load_config
-from utils.early_stopping import EarlyStopping
 from utils.training_setup import setup_training_components
 
 
 def main(config: Dict[str, Any]):
     # Device management
-    device = (
-        torch.device("mps") if torch.backends.mps.is_available() and torch.backends.mps.is_built()
-        else torch.device("cuda") if torch.cuda.is_available()
-        else torch.device("cpu")
-    )
 
-    if device.type == 'cuda' and len(config['device']['gpu_ids']) > 1:
-        torch.cuda.set_device(config['device']['gpu_ids'][0])
+    device = get_device()
 
     # Setup training components
     model, train_loader, val_loader, criterion, optimizer, scheduler = setup_training_components(config, device)
