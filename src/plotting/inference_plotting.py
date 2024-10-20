@@ -125,10 +125,19 @@ def plot_multiple_comparisons(
     if title:
         fig.suptitle(title, fontsize=16)
 
-    # Adjust layout and save the figure if required
+    # Adjust layout
     plt.tight_layout()
+
+    # Save the figure if a path is provided
     if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight')
 
-    plt.show()
-    plt.close()
+    # Show the figure if requested
+    if show:
+        plt.show()
+        plt.close(fig)
+        return None
+
+    # If neither saving nor showing, return the figure object
+    return fig
+
