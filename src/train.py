@@ -9,10 +9,12 @@ from typing import Any, Dict
 import mlflow
 import torch
 from tqdm import tqdm
+import argparse
 
-from utils.tools import CheckpointSaver, EarlyStopping, get_device
-from utils.config_parser import load_config
-from utils.training_setup import setup_training_components
+from src.utils.tools import CheckpointSaver, EarlyStopping, get_device
+from src.utils.config_parser import load_config
+from src.utils.training_setup import setup_training_components
+from src.inference.inferencer import Inferencer
 
 
 def main(config: Dict[str, Any]):
@@ -35,6 +37,9 @@ def main(config: Dict[str, Any]):
     # Checkpoint directory
     checkpoint_dir = Path(config['checkpoint']['dir'])
     checkpoint_saver = CheckpointSaver(checkpoint_dir, config)
+
+    # Inferencer for plotting
+    inf = Inferencer(model, next(iter(val_loader))[0], device)
 
     with mlflow.start_run():
         mlflow.log_params(config['training'])
@@ -68,14 +73,17 @@ def main(config: Dict[str, Any]):
             val_running_loss = 0.0
 
             with torch.no_grad():
-                for inputs, labels in val_loader:
-                    inputs = inputs.to(device)
-                    labels = labels.to(device)
-                    outputs = model(inputs)
-                    loss = criterion(outputs, labels)
+                update_str = f"Epoch {epoch + 1}/{config['training']['epochs']} - Validation"
+                with tqdm(train_loader, desc=update_str, leave=False) as t:
+                    for inputs, labels in t:
+                        inputs = inputs.to(device)
+                        labels = labels.to(device)
+                        outputs = model(inputs)
+                        loss = criterion(outputs, labels)
 
-                    val_running_loss += loss.item() * inputs.size(0)
-                    _, predicted = torch.max(outputs.data, 1)
+                        val_running_loss += loss.item() * inputs.size(0)
+                        _, predicted = torch.max(outputs.data, 1)
+                        t.set_postfix({"Loss": running_loss / len(val_loader)})
 
             val_loss = val_running_loss / len(val_loader.dataset)
             mlflow.log_metric('val_loss', val_loss, step=epoch)
@@ -96,9 +104,12 @@ def main(config: Dict[str, Any]):
             checkpoint_saver.save(model, val_loss)
 
             print(
-                f"Epoch [{epoch + 1}/{config['training']['epochs']}] - "
+                f"\nEpoch [{epoch + 1}/{config['training']['epochs']}] - "
                 f"Train Loss: {epoch_loss:.4f} - Val Loss: {val_loss:.4f} - "
             )
+
+            fig = inf.plot_inference_comparison()
+            mlflow.log_figure(fig, f"inference_comparison_{epoch}.png")
 
     print("Training completed.")
 
@@ -106,5 +117,12 @@ def main(config: Dict[str, Any]):
 debug = False
 
 if __name__ == '__main__':
-    config = load_config('config/config.yaml')
+    config = load_config(Path(__file__).parent / 'config' / 'config.yaml')
+
+    # Attach input data if on AzureML
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input_data', type=str)
+    args = parser.parse_args()
+    if args.input_data is not None:
+        config['data']['root_dir'] = args.input_data
     main(config)
