@@ -21,7 +21,7 @@ def main(config: Dict[str, Any]):
     device = get_device()
 
     # Setup training components
-    model, train_loader, val_loader, criterion, optimizer, scheduler = setup_training_components(config, device)
+    model, train_loader, val_loader, criterion, optimizer, scheduler = setup_training_components(config, device, debug=debug)
 
     # MLflow setup
     mlflow.set_tracking_uri(config['logging']['mlflow_tracking_uri'])
@@ -102,6 +102,8 @@ def main(config: Dict[str, Any]):
 
     print("Training completed.")
 
+
+debug = False
 
 if __name__ == '__main__':
     config = load_config('config/config.yaml')

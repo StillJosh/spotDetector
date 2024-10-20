@@ -27,6 +27,8 @@ class DeepSpotDataset(Dataset):
         Desired input size (height, width).
     augmentations : Dict[str, Any]
         Dictionary specifying augmentations and their parameters.
+    debug : bool
+        Whether to run the dataset in debug mode. If True, only two batches will be loaded.
 
     Attributes
     ----------
@@ -38,6 +40,8 @@ class DeepSpotDataset(Dataset):
         Transformation pipeline for the images.
     label_transform : Callable
         Transformation pipeline for the labels.
+    debug : bool
+        Whether the dataset is in debug mode. If True, only two samples will be loaded.
     """
 
     def __init__(
@@ -45,10 +49,12 @@ class DeepSpotDataset(Dataset):
         data_dir: Union[str, Path],
         input_size: Tuple[int, int] = (256, 256),
         augmentations: Optional[Dict[str, Any]] = None,
+        debug: bool = False,
     ):
         self.data_dir = Path(data_dir)
         self.input_size = input_size
         self.images = sorted(self.data_dir.glob('*.*'))
+        self.debug = debug
 
         if augmentations is None:
             augmentations = {}
@@ -56,6 +62,8 @@ class DeepSpotDataset(Dataset):
         self.transform = self.get_transform(augmentations, is_label=False)
 
     def __len__(self) -> int:
+        if self.debug:
+            return min(2, len(self.images))
         return len(self.images)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:

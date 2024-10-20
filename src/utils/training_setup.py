@@ -2,7 +2,7 @@
 # Description: Setup the model, loss function, optimizer, and scheduler.
 # Author: Joshua Stiller
 # Date: 16.10.24
-
+from pathlib import Path
 from typing import Any, Callable, Dict, Tuple
 
 import torch
@@ -18,7 +18,7 @@ import datasets as ds
 
 
 def setup_training_components(
-        config: Dict[str, Any], device: torch.device
+        config: Dict[str, Any], device: torch.device, debug: bool = False
 ) -> Tuple[nn.Module, nn.Module, Optimizer, _LRScheduler]:
     """
     Set up the model, loss function, optimizer, and scheduler.
@@ -29,6 +29,8 @@ def setup_training_components(
         Configuration dictionary.
     device : torch.device
         Device to run the model on.
+    debug : bool
+        Whether to run the dataset in debug mode. If True, only two samples will be loaded.
 
     Returns
     -------
@@ -44,7 +46,7 @@ def setup_training_components(
 
     # Dataset
     if config['data']['dataset'] == 'deepspot':
-        train_loader, val_loader = get_dataset(ds.DeepSpotDataset, config)
+        train_loader, val_loader = get_dataset(ds.DeepSpotDataset, config, debug)
 
     # Loss function
     if config['training']['loss'] == 'deepspot':
@@ -120,7 +122,7 @@ def get_model(config: Dict[str, Any]) -> nn.Module:
     return model
 
 
-def get_dataset(dataset: Callable, config: Dict[str, Any]):
+def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple[DataLoader, DataLoader]:
     """
     Loads a dataset from the datasets module according to information in config.
 
@@ -130,6 +132,8 @@ def get_dataset(dataset: Callable, config: Dict[str, Any]):
         A class from the datasets module.
     config : Dict[str, Any]
         Configuration dictionary.
+    debug : bool
+        Whether to run the dataset in debug mode. If True, only two samples will be loaded.
     Returns
     -------
     Tuple[DataLoader, DataLoader]
@@ -138,7 +142,7 @@ def get_dataset(dataset: Callable, config: Dict[str, Any]):
 
     # Data loaders
     train_dataset = dataset(
-        config['data']['train_dir'], tuple(config['data']['input_size'])
+        Path(config['data']['root_dir']) / config['data']['train_dir'], tuple(config['data']['input_size']), debug=debug
     )
     train_loader = DataLoader(
         train_dataset,
@@ -148,7 +152,7 @@ def get_dataset(dataset: Callable, config: Dict[str, Any]):
     )
 
     val_dataset = dataset(
-        config['data']['val_dir'], tuple(config['data']['input_size'])
+        Path(config['data']['root_dir']) / config['data']['val_dir'], tuple(config['data']['input_size']), debug=debug
     )
     val_loader = DataLoader(
         val_dataset,
