@@ -4,11 +4,10 @@
 # Date: 18.10.24
 import torch
 
-import datasets
-from inference import inferencer
-from inference.load_model_utils import load_pretrained_model
-from utils import tools
-import plotting as pl
+from src import datasets
+from src.inference import inferencer
+from src.inference.load_model_utils import load_pretrained_model
+from src.utils import tools
 
 config = {
     'model_name': 'DeepSpotNet',
@@ -22,7 +21,7 @@ config = {
 device = tools.get_device()
 model = load_pretrained_model(**config)
 
-ds = datasets.DeepSpotDataset(data_dir='../data/val')
+ds = datasets.DeepSpotDataset(data_dir='../../data/val')
 dl = torch.utils.data.DataLoader(ds, batch_size=16, shuffle=True)
 inf = inferencer.Inferencer(model, torch.device('mps'))
 images, labels = next(iter(dl))
