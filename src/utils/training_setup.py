@@ -12,9 +12,8 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
-import models
-import utils.losses as cl
-import datasets as ds
+from src import datasets as ds, models
+import src.utils.losses as cl
 
 
 def setup_training_components(
@@ -149,6 +148,7 @@ def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple
         batch_size=config['training']['batch_size'],
         shuffle=True,
         num_workers=config['data']['num_workers'],
+        pin_memory=config['data']['pin_memory']
     )
 
     val_dataset = dataset(
@@ -159,6 +159,7 @@ def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple
         batch_size=config['training']['batch_size'],
         shuffle=False,
         num_workers=config['data']['num_workers'],
+        pin_memory=config['data']['pin_memory']
     )
 
     return train_loader, val_loader

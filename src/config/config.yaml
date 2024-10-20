@@ -21,11 +21,13 @@ training:
 
 data:
   dataset: 'deepspot'
-  train_dir: 'data/train'
-  val_dir: 'data/val'
-  test_dir: 'data/test'
-  input_size: [224, 224]
+  root_dir: 'data/sliced8bit'
+  train_dir: 'train'
+  val_dir: 'val'
+  test_dir: 'test'
+  input_size: [512, 512]
   num_workers: 4
+  pin_memory: True
 
 
 logging:
