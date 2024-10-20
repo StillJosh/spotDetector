@@ -9,7 +9,7 @@ from typing import Union, Optional
 
 import torch
 
-import models
+from src import models
 
 
 def load_pretrained_model(
