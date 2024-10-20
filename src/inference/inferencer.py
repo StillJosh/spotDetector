@@ -4,14 +4,16 @@
 # Date: 16.10.24
 
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, _SpecialForm
 
 import numpy as np
 import tifffile
 import torch
 import torch.nn as nn
+from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
-import plotting as pl
+from src import plotting as pl
 
 
 class Inferencer:
@@ -33,14 +35,14 @@ class Inferencer:
         The device to run inference on.
     """
 
-    def __init__(self, model: nn.Module, device: torch.device):
+    def __init__(self, model: nn.Module, images: torch.Tensor, device: torch.device):
         self.model = model.to(device)
         self.model.eval()
         self.device = device
 
     def infer_on_patches(
             self,
-            images: torch.Tensor,
+            images: Optional[torch.Tensor] = None,
     ) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
         """
         Run inference on random preprocessed patches of images.
@@ -319,14 +321,29 @@ class Inferencer:
 
         return output_image
 
-    def plot_inference_comparison(self, images: torch.Tensor):
+    def plot_inference_comparison(
+            self,
+            images: Optional[torch.Tensor] = None,
+            save_path: Union[Path, str] = None,
+            show: bool = False
+    ) -> plt.Figure:
         """
         Plot the original image and its corresponding inference image side by side.
 
         Parameters
         ----------
-        images : torch.Tensor
+        images : Optional[torch.Tensor], default=None
             The input images tensor of shape (B, C, H, W).
+            If None, uses `self.images`.
+        save_path : Union[Path, str], default=None
+            If provided, saves the figure to the specified file path.
+        show : bool, default=False
+            If True, displays the plot.
+
+        Returns
+        -------
+        Optional[plt.Figure]
+            Returns the figure object if neither saving nor showing, otherwise returns None.
         """
         output = self.infer_on_patches(images)
         if images.shape[1] == 1:

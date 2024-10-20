@@ -4,12 +4,12 @@
 # Date: 16.10.24
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 import yaml
 
 
-def load_config(config_path: str) -> Dict[str, Any]:
+def load_config(config_path: Union[Path, str]) -> Dict[str, Any]:
     """
     Load configuration from a YAML file.
 

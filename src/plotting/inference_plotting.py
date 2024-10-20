@@ -74,24 +74,32 @@ def plot_inference_comparison(
 
 
 def plot_multiple_comparisons(
-        original_images: List[np.ndarray],
-        inference_images: List[np.ndarray],
+        original_images: np.ndarray,
+        inference_images: np.ndarray,
         title: Optional[str] = None,
-        save_path: Optional[str] = None
-) -> None:
+        save_path: Optional[str] = None,
+        show: bool = False
+) -> Optional[plt.Figure]:
     """
     Plot multiple comparisons of original and inference images, stacked vertically.
 
     Parameters
     ----------
-    original_images : List[np.ndarray]
+    original_images : np.ndarray
         List of original images, each with shape (Y, X).
-    inference_images : List[np.ndarray]
+    inference_images : np.ndarray
         List of inference images, each with shape (Y, X).
     title : Optional[str], default=None
         Title for the plot.
     save_path : Optional[str], default=None
         If provided, saves the figure to the specified file path.
+    show : bool, default=False
+        If True, shows the plot.
+
+    Returns
+    -------
+    Optional[plt.Figure]
+        Returns the figure object if neither saving nor showing, otherwise returns None.
     """
     if len(original_images) != len(inference_images):
         raise ValueError("Number of original images must match number of inference images.")
