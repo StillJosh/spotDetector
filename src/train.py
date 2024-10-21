@@ -3,7 +3,12 @@
 # Author: Joshua Stiller
 # Date: 16.10.24
 
+import sys
 from pathlib import Path
+
+sys.path.append(str(Path(__file__).parents[0]))
+print(str(Path(__file__).parents[0]))
+
 from typing import Any, Dict
 
 import mlflow
