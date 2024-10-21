@@ -14,3 +14,7 @@ data/
 __pycache__
 
 azureml/submit_spot_cutting_to_azure.ipynb
+
+aws/
+
+azureml/
