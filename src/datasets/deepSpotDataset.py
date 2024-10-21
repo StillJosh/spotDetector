@@ -13,6 +13,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
+import polars as pl
 
 
 class DeepSpotDataset(Dataset):
@@ -47,13 +48,14 @@ class DeepSpotDataset(Dataset):
     def __init__(
         self,
         data_dir: Union[str, Path],
+        metadata: pl.DataFrame,
         input_size: Tuple[int, int] = (256, 256),
         augmentations: Optional[Dict[str, Any]] = None,
         debug: bool = False,
     ):
         self.data_dir = Path(data_dir)
         self.input_size = input_size
-        self.images = sorted(self.data_dir.glob('*.*'))
+        self.metadata = metadata
         self.debug = debug
 
         if augmentations is None:
@@ -61,14 +63,32 @@ class DeepSpotDataset(Dataset):
 
         self.transform = self.get_transform(augmentations, is_label=False)
 
+    def load_image(self, row: pl.Series) -> Image:
+        """
+        Load an image from the specified path and convert it to grayscale.
+
+        Parameters
+        ----------
+        image_path: str
+            Path to the image file.
+
+        Returns
+        -------
+        Image
+            Grayscale image.
+        """
+        file_path = self.data_dir / row[0, 'file_path']
+        return Image.open(file_path).convert('L')
+
+
     def __len__(self) -> int:
         if self.debug:
-            return min(2, len(self.images))
-        return len(self.images)
+            return min(2, len(self.metadata))
+        return len(self.metadata)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        image_path = self.images[idx]
-        image = Image.open(image_path).convert('L')
+        image_path = self.metadata[idx]
+        image = self.load_image(image_path)
         image = self.transform(image)
 
         return image, image.clone()
@@ -135,3 +155,6 @@ class DeepSpotDataset(Dataset):
             transform_list.append(transforms.Lambda(lambda x: x.squeeze().long()))
 
         return transforms.Compose(transform_list)
+
+
+

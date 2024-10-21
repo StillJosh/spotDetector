@@ -5,6 +5,7 @@
 from pathlib import Path
 from typing import Any, Callable, Dict, Tuple
 
+import polars as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -12,8 +13,8 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
-from src import datasets as ds, models
 import src.utils.losses as cl
+from src import datasets as ds, models
 
 
 def setup_training_components(
@@ -46,6 +47,8 @@ def setup_training_components(
     # Dataset
     if config['data']['dataset'] == 'deepspot':
         train_loader, val_loader = get_dataset(ds.DeepSpotDataset, config, debug)
+    elif config['data']['dataset'] == 'deepspot_s3':
+        train_loader, val_loader = get_dataset(ds.DeepSpotDatasetS3, config, debug)
 
     # Loss function
     if config['training']['loss'] == 'deepspot':
@@ -139,9 +142,17 @@ def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple
         Training and validation data loaders.
     """
 
+    root_dir = Path(config['data']['root_dir'])
+    metadata = pl.read_csv(root_dir / 'metadata_full.csv')
+    metadata = metadata.filter(pl.col('bit_depth') == config['data']['bit_depth'])
+
+
     # Data loaders
     train_dataset = dataset(
-        Path(config['data']['root_dir']) / config['data']['train_dir'], tuple(config['data']['input_size']), debug=debug
+        data_dir=Path(config['data']['root_dir']),
+        metadata=metadata.filter(pl.col('phase') == 'train'),
+        input_size=tuple(config['data']['input_size']),
+        debug=debug
     )
     train_loader = DataLoader(
         train_dataset,
@@ -152,7 +163,10 @@ def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple
     )
 
     val_dataset = dataset(
-        Path(config['data']['root_dir']) / config['data']['val_dir'], tuple(config['data']['input_size']), debug=debug
+        data_dir=Path(config['data']['root_dir']),
+        metadata=metadata.filter(pl.col('phase') == 'val'),
+        input_size=tuple(config['data']['input_size']),
+        debug=debug
     )
     val_loader = DataLoader(
         val_dataset,
