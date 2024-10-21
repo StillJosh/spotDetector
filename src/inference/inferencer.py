@@ -13,7 +13,7 @@ import torch.nn as nn
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from src import plotting as pl
+import plotting as pl
 
 
 class Inferencer:

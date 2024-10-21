@@ -7,17 +7,14 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Any, Dict
-
-sys.path.append(str(Path(__file__).parents[0]))
-
 import mlflow
 import torch
 from tqdm import tqdm
 
-from src.inference.inferencer import Inferencer
-from src.utils.config_parser import load_config
-from src.utils.tools import CheckpointSaver, EarlyStopping, get_device
-from src.utils.training_setup import setup_training_components
+from inference.inferencer import Inferencer
+from utils.config_parser import load_config
+from utils.tools import CheckpointSaver, EarlyStopping, get_device
+from utils.training_setup import setup_training_components
 from utils.logging import logger
 
 def main(config: Dict[str, Any]):
