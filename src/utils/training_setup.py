@@ -157,7 +157,14 @@ def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple
     """
 
     root_dir = Path(config['data']['root_dir'])
-    metadata = pl.read_csv(root_dir / 'metadata_full.csv')
+    if config['data']['dataset'].endswith('_s3'):
+        metadata = pl.read_csv(
+            boto3.client('s3')
+            .get_object(Bucket='tunamlbucket', Key='spotDetection/metadata_full.csv')['Body']
+            .read())
+    else:
+        metadata = pl.read_csv(root_dir / 'metadata_full.csv')
+
     metadata = metadata.filter(pl.col('bit_depth') == config['data']['bit_depth'])
 
 
