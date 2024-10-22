@@ -5,9 +5,9 @@
 from pathlib import Path
 from typing import Optional
 
-import mlflow
 import torch
 from torch.nn import Module
+import wandb  # Import W&B
 
 
 class CheckpointSaver:
@@ -68,15 +68,20 @@ class CheckpointSaver:
         ):
             self.best_metric = metric_to_monitor
 
+            # Save the model state_dict
             save_path = self.checkpoint_dir / 'best_model.pth'
             torch.save(model.state_dict(), save_path)
-            mlflow.log_artifact(str(save_path))
+
+            # Log the model checkpoint as an artifact with W&B
+            wandb.save(str(save_path))
 
             # Export to TorchScript
             scripted_model = torch.jit.script(model)
             script_save_path = self.checkpoint_dir / 'best_model_scripted.pt'
             scripted_model.save(str(script_save_path))
-            mlflow.log_artifact(str(script_save_path))
+
+            # Log the TorchScript model to W&B
+            wandb.save(str(script_save_path))
 
 
 class EarlyStopping:
