@@ -55,8 +55,8 @@ def setup_training_components(
     cuda_devices = get_cuda_device_ids()
     print(f'Cuda Devices: {cuda_devices}')
 
-    # if device.type == 'cuda' and len(config['device']['gpu_ids']) > 1:
-    #    model = nn.DataParallel(model, device_ids=config['device']['gpu_ids'])
+    if device.type == 'cuda' and torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)  # Automatically uses all available GPUs
 
     # Dataset
     if config['data']['dataset'] == 'deepspot':
