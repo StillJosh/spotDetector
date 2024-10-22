@@ -27,6 +27,7 @@ data:
   val_dir: 'val'
   test_dir: 'test'
   bit_depth: 8
+  mode: 'z-stack'
   input_size: [512, 512]
   num_workers: 4
   pin_memory: True
