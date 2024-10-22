@@ -165,7 +165,8 @@ def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple
     else:
         metadata = pl.read_csv(root_dir / 'metadata_full.csv')
 
-    metadata = metadata.filter(pl.col('bit_depth') == config['data']['bit_depth'])
+    metadata = metadata.filter((pl.col('bit_depth') == config['data']['bit_depth']) &
+                               (pl.col('mode') == config['data']['mode']))
 
 
     # Data loaders
