@@ -56,7 +56,7 @@ class DeepSpotDatasetS3(DeepSpotDataset):
         super().__init__(data_dir, metadata, input_size, augmentations, debug)
         self.s3 = None
 
-    def load_image(self, row: pl.Series) -> Optional[Image]:
+    def load_image(self, row: pl.Series) -> Tuple[Image, Image]:
         """
         Load an image from the specified path and convert it to grayscale.
 

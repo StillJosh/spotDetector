@@ -65,7 +65,7 @@ class DeepSpotDataset(Dataset):
 
         self.transform = CustomTransforms(self.input_size, augmentations)
 
-    def load_image(self, row: pl.Series) -> Image:
+    def load_image(self, row: pl.DataFrame) -> Tuple[Image, Image]:
         """
         Load an image from the specified path and convert it to grayscale.
 
@@ -80,7 +80,8 @@ class DeepSpotDataset(Dataset):
             Grayscale image.
         """
         file_path = self.data_dir / row[0, 'file_path']
-        return Image.open(file_path).convert('L')
+        label_path = self.data_dir / row[0, 'label_path']
+        return Image.open(file_path), Image.open(label_path)
 
 
     def __len__(self) -> int:
@@ -88,9 +89,9 @@ class DeepSpotDataset(Dataset):
             return min(2, len(self.metadata))
         return len(self.metadata)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        image_path = self.metadata[idx]
-        image = self.load_image(image_path)
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        row = self.metadata[idx]
+        image, label = self.load_image(row)
         image, label = self.transform(image, label)
 
         return image, image.clone()
