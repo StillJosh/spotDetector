@@ -15,6 +15,8 @@ from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import polars as pl
 
+from .transformations import CustomTransforms
+
 
 class DeepSpotDataset(Dataset):
     """
@@ -61,7 +63,7 @@ class DeepSpotDataset(Dataset):
         if augmentations is None:
             augmentations = {}
 
-        self.transform = self.get_transform(augmentations, is_label=False)
+        self.transform = CustomTransforms(self.input_size, augmentations)
 
     def load_image(self, row: pl.Series) -> Image:
         """
@@ -89,7 +91,7 @@ class DeepSpotDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         image_path = self.metadata[idx]
         image = self.load_image(image_path)
-        image = self.transform(image)
+        image, label = self.transform(image, label)
 
         return image, image.clone()
 
