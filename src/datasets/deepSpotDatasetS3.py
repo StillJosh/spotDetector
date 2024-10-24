@@ -13,6 +13,7 @@ import polars as pl
 from PIL import Image
 
 from .deepSpotDataset import DeepSpotDataset
+from utils.logging import logger
 
 
 class DeepSpotDatasetS3(DeepSpotDataset):
@@ -73,16 +74,37 @@ class DeepSpotDatasetS3(DeepSpotDataset):
         if self.s3 is None:
             self.s3 = boto3.client('s3')
 
-        file_path = 'spotDetection/' + row[0, 'file_path']
+        file_path = row[0, 'file_path']
+        label_path = row[0, 'label_path']
+
         try:
-            # Load image from S3
-            obj = self.s3.get_object(Bucket='tunamlbucket', Key=file_path)
-            img_data = obj['Body'].read()
-            return Image.open(BytesIO(img_data))
-        except self.s3.exceptions.NoSuchKey:
-            # Handle the case where the image key doesn't exist by returning a zero image
-            print(f"Image not found: {file_path}")
-            return self._create_zero_image()
+            # Read image file from PipeMode
+            img_data = self._read_from_pipe(file_path)
+            label_data = self._read_from_pipe(label_path)
+
+            return Image.open(BytesIO(img_data)), Image.open(BytesIO(label_data))
+
+        except FileNotFoundError:
+            logger.warning(f"Image not found: {file_path}")
+            return self._create_zero_image(), self._create_zero_image()
+
+    def _read_from_pipe(self, file_key: str) -> bytes:
+        """
+        Read data from PipeMode.
+
+        Parameters
+        ----------
+        file_key : str
+            The key of the file to read from the S3 PipeMode input.
+
+        Returns
+        -------
+        bytes
+            The file data in bytes.
+        """
+        pipe_path = f'/opt/ml/input/data/train/{file_key}'  # Pipe path for SageMaker
+        with open(pipe_path, 'rb') as f:
+            return f.read()
 
     def _create_zero_image(self) -> Image:
         """
