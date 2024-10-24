@@ -54,7 +54,7 @@ def main(config: Dict[str, Any]):
         logger.info(f"Epoch [{epoch + 1}/{config['training']['epochs']}] - Training started")
 
         with tqdm(train_loader, desc=f"Epoch [{epoch + 1}/{config['training']['epochs']}] - Training",
-                  file=sys.stdout, ascii=True, ncols=80) as t:
+                  file=sys.stdout, ascii=True, ncols=80, mininterval=30) as t:
             for inputs, labels in t:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
