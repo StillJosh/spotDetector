@@ -40,7 +40,7 @@ def main(config: Dict[str, Any]):
     checkpoint_saver = CheckpointSaver(checkpoint_dir, config)
 
     # Inferencer for plotting
-    inf = Inferencer(model, next(iter(val_loader))[0], device)
+    inf = Inferencer(model, *next(iter(val_loader)), device)
 
     # Log parameters
     wandb.config.update(config['training'])

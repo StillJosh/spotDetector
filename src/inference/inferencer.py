@@ -4,16 +4,14 @@
 # Date: 16.10.24
 
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, _SpecialForm
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
+import plotting as pl
 import tifffile
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
-from matplotlib.figure import Figure
-
-import plotting as pl
 
 
 class Inferencer:
@@ -35,10 +33,12 @@ class Inferencer:
         The device to run inference on.
     """
 
-    def __init__(self, model: nn.Module, images: torch.Tensor, device: torch.device):
+    def __init__(self, model: nn.Module, images: torch.Tensor, labels: Optional[torch.Tensor] = None,
+                 device: Optional[torch.device] = torch.device('cpu')):
         self.model = model.to(device)
         self.model.eval()
         self.images = images
+        self.labels = labels
         self.device = device
 
     def infer_on_patches(
@@ -350,18 +350,22 @@ class Inferencer:
         images = self.images.clone() if images is None else images
         output = self.infer_on_patches(images)
 
+        labels = self.labels or images
+
         # Squeeze channels if they are singleton
         if images.shape[1] == 1:
             images = images.squeeze(1)
             output = output.squeeze(1)
+            labels = labels.squeeze(1)
 
         # Convert the tensors to NumPy arrays for plotting
         images = images.cpu().numpy()
         output = output.cpu().numpy()
+        labels = labels.cpu().numpy()
 
         # Use plot_multiple_comparisons to create the plot
         fig = pl.plot_multiple_comparisons(
-            original_images=images,
+            original_images=labels,
             inference_images=output,
             save_path=save_path,
             show=show
