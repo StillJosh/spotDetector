@@ -31,6 +31,10 @@ data:
   input_size: [512, 512]
   num_workers: 4
   pin_memory: True
+  augmentations:
+    'horizontal_flip' : True
+    'vertical_flip': True
+    'color_jitter' : True
 
 
 logging:

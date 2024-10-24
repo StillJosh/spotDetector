@@ -174,6 +174,7 @@ def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple
         data_dir=Path(config['data']['root_dir']),
         metadata=metadata.filter(pl.col('phase') == 'train'),
         input_size=tuple(config['data']['input_size']),
+        augmentations=config['data']['augmentations'],
         debug=debug
     )
     train_loader = DataLoader(
@@ -188,6 +189,7 @@ def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple
         data_dir=Path(config['data']['root_dir']),
         metadata=metadata.filter(pl.col('phase') == 'val'),
         input_size=tuple(config['data']['input_size']),
+        augmentations=config['data']['augmentations'],
         debug=debug
     )
     val_loader = DataLoader(
