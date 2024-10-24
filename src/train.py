@@ -7,15 +7,16 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Any, Dict
+
 import torch
-from tqdm import tqdm
 import wandb  # Import Weights and Biases
+from tqdm import tqdm
 
 from inference.inferencer import Inferencer
 from utils.config_parser import load_config
+from utils.logging import logger
 from utils.tools import CheckpointSaver, EarlyStopping, get_device
 from utils.training_setup import setup_training_components
-from utils.logging import logger
 
 
 def main(config: Dict[str, Any]):
@@ -58,13 +59,11 @@ def main(config: Dict[str, Any]):
             for inputs, labels in t:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
-
                 running_loss += loss.item() * inputs.size(0)
                 t.set_postfix({"Loss": f"{loss.item():.4f}"})
 
