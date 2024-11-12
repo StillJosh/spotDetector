@@ -21,8 +21,6 @@ from utils.training_setup import setup_training_components
 
 def main(config: Dict[str, Any]):
     # Device management
-    device = get_device()
-
     # Setup training components
     model, train_loader, val_loader, criterion, optimizer, scheduler = setup_training_components(config, device,
                                                                                                  debug=debug)
@@ -118,6 +116,7 @@ def main(config: Dict[str, Any]):
 
 
 debug = False
+device = get_device()
 
 if __name__ == '__main__':
     import os
