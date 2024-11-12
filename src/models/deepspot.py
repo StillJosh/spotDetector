@@ -35,16 +35,16 @@ class IdentityBlock(nn.Module):
         super(IdentityBlock, self).__init__()
         f1, f2, f3 = filters
 
-        self.bn1 = nn.BatchNorm2d(in_channels)
+        self.bn1 = nn.BatchNorm2d(in_channels, momentum=0.99, eps=1e-3)
         self.relu = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv2d(in_channels, f1, kernel_size=1, stride=1, padding=0)
 
-        self.bn2 = nn.BatchNorm2d(f1)
+        self.bn2 = nn.BatchNorm2d(f1, momentum=0.99, eps=1e-3)
         self.conv2 = nn.Conv2d(
             f1, f2, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
         )
 
-        self.bn3 = nn.BatchNorm2d(f2)
+        self.bn3 = nn.BatchNorm2d(f2, momentum=0.99, eps=1e-3)
         self.conv3 = nn.Conv2d(f2, f3, kernel_size=1, stride=1, padding=0)
 
         self.dropout = nn.Dropout2d(dropout_rate)
@@ -99,18 +99,18 @@ class ConvBlock(nn.Module):
         super(ConvBlock, self).__init__()
         f1, f2, f3 = filters
 
-        self.bn1 = nn.BatchNorm2d(in_channels)
+        self.bn1 = nn.BatchNorm2d(in_channels, momentum=0.99, eps=1e-3)
         self.relu = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv2d(
             in_channels, f1, kernel_size=1, stride=stride, padding=0
         )
 
-        self.bn2 = nn.BatchNorm2d(f1)
+        self.bn2 = nn.BatchNorm2d(f1, momentum=0.99, eps=1e-3)
         self.conv2 = nn.Conv2d(
             f1, f2, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
         )
 
-        self.bn3 = nn.BatchNorm2d(f2)
+        self.bn3 = nn.BatchNorm2d(f2, momentum=0.99, eps=1e-3)
         self.conv3 = nn.Conv2d(f2, f3, kernel_size=1, stride=1, padding=0)
 
         self.dropout = nn.Dropout2d(dropout_rate)
@@ -119,7 +119,7 @@ class ConvBlock(nn.Module):
         self.shortcut_conv = nn.Conv2d(
             in_channels, f3, kernel_size=1, stride=stride, padding=0
         )
-        self.shortcut_bn = nn.BatchNorm2d(f3)
+        self.shortcut_bn = nn.BatchNorm2d(f3, momentum=0.99, eps=1e-3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         shortcut = self.shortcut_conv(x)
@@ -177,18 +177,18 @@ class ConvUpBlock(nn.Module):
             padding=1,
             output_padding=stride - 1,
         )
-        self.bn1 = nn.BatchNorm2d(f1)
+        self.bn1 = nn.BatchNorm2d(f1, momentum=0.99, eps=1e-3)
         self.relu = nn.ReLU(inplace=True)
 
         self.conv_transpose2 = nn.ConvTranspose2d(
             f1, f2, kernel_size=3, stride=1, padding=1
         )
-        self.bn2 = nn.BatchNorm2d(f2)
+        self.bn2 = nn.BatchNorm2d(f2, momentum=0.99, eps=1e-3)
 
         self.conv_transpose3 = nn.ConvTranspose2d(
             f2, f3, kernel_size=3, stride=1, padding=1
         )
-        self.bn3 = nn.BatchNorm2d(f3)
+        self.bn3 = nn.BatchNorm2d(f3, momentum=0.99, eps=1e-3)
 
         self.dropout = nn.Dropout2d(dropout_rate)
 
@@ -201,7 +201,7 @@ class ConvUpBlock(nn.Module):
             padding=1,
             output_padding=stride - 1,
         )
-        self.shortcut_bn = nn.BatchNorm2d(f2)
+        self.shortcut_bn = nn.BatchNorm2d(f2, momentum=0.99, eps=1e-3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         shortcut = self.shortcut_conv_transpose(x)
@@ -253,48 +253,48 @@ class DeepSpotNet(nn.Module):
         # Initial Convolution Branch
         self.conv_branch = nn.Sequential(
             nn.Conv2d(
-                input_channels, 32, kernel_size=3, stride=2, padding=1, bias=False
+                input_channels, 32, kernel_size=3, stride=2, padding=1, bias=True
             ),
-            nn.BatchNorm2d(32),
+            nn.BatchNorm2d(32, momentum=0.99, eps=1e-3),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, bias=True),
+            nn.BatchNorm2d(64, momentum=0.99, eps=1e-3),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=True),
+            nn.BatchNorm2d(128, momentum=0.99, eps=1e-3),
             nn.ReLU(inplace=True),
         )
 
         # MaxPool Branch
         self.maxpool_branch = nn.Sequential(
             nn.Conv2d(
-                input_channels, 32, kernel_size=3, stride=1, padding=1, bias=False
+                input_channels, 32, kernel_size=3, stride=1, padding=1, bias=True
             ),
-            nn.BatchNorm2d(32),
+            nn.BatchNorm2d(32, momentum=0.99, eps=1e-3),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(64, momentum=0.99, eps=1e-3),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(128, momentum=0.99, eps=1e-3),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
 
         # Atrous (Dilated) Convolution Branch
         self.atrous_branch = nn.Sequential(
-            nn.Conv2d(input_channels, 32, kernel_size=3, stride=1, padding=2, dilation=2, bias=False),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(input_channels, 32, kernel_size=3, stride=1, padding=2, dilation=2, bias=True),
+            nn.BatchNorm2d(32, momentum=0.99, eps=1e-3),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=2, dilation=2, bias=False),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=2, dilation=2, bias=True),
+            nn.BatchNorm2d(64, momentum=0.99, eps=1e-3),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=2, dilation=2, bias=False),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=2, dilation=2, bias=True),
+            nn.BatchNorm2d(128, momentum=0.99, eps=1e-3),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
