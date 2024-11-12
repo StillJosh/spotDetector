@@ -3,7 +3,7 @@
 # Author: Joshua Stiller
 # Date: 16.10.24
 
-import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict
@@ -13,10 +13,10 @@ import wandb  # Import Weights and Biases
 from tqdm import tqdm
 
 from inference.inferencer import Inferencer
+from utils import training_setup as ts
 from utils.config_parser import load_config
 from utils.logging import logger
 from utils.tools import CheckpointSaver, EarlyStopping, get_device
-from utils import training_setup as ts
 
 
 def main(config: Dict[str, Any]):
@@ -115,16 +115,16 @@ def main(config: Dict[str, Any]):
     wandb.finish()  # Finish W&B run
 
 
-debug = False
-device = get_device()
-
 if __name__ == '__main__':
 
     config = load_config(Path(__file__).parent / 'config' / 'config.yaml')
+
+    if config['debug']:
+        os.environ['WANDB_MODE'] = 'offline'
 
     # W&B setup
     wandb.login(key=os.getenv('WANDB_API_KEY'))
     wandb.init(project='spotDetector',
                config={**config['training'], **config['model'], **config['data']})
-    
+
     main(config)

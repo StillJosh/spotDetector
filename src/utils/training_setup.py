@@ -95,7 +95,7 @@ def get_dataloaders(config: Dict[str, Any], debug: bool) -> Tuple[DataLoader, Da
         input_size=tuple(config['data']['input_size']),
         augmentations=config['data']['augmentations'],
         is_train=True,
-        debug=debug
+        debug=config['debug']
     )
     train_loader = DataLoader(
         train_dataset,
@@ -112,7 +112,7 @@ def get_dataloaders(config: Dict[str, Any], debug: bool) -> Tuple[DataLoader, Da
         input_size=tuple(config['data']['input_size']),
         augmentations=config['data']['augmentations'],
         is_train=False,
-        debug=debug
+        debug=config['debug']
     )
     val_loader = DataLoader(
         val_dataset,
