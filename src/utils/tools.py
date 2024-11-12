@@ -75,13 +75,6 @@ class CheckpointSaver:
             # Log the model checkpoint as an artifact with W&B
             wandb.save(str(save_path))
 
-            # Export to TorchScript
-            scripted_model = torch.jit.script(model)
-            script_save_path = self.checkpoint_dir / 'best_model_scripted.pt'
-            scripted_model.save(str(script_save_path))
-
-            # Log the TorchScript model to W&B
-            wandb.save(str(script_save_path))
 
 
 class EarlyStopping:
