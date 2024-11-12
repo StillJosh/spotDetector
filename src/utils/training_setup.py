@@ -134,6 +134,13 @@ def get_model(config: Dict[str, Any]) -> nn.Module:
             conv_block4_filters=config.get('conv_block4_filters', 128),
             identity_block_filters=config.get('identity_block_filters', 128),
         )
+    if config['model']['name'] == 'deepspot3D':
+        model = models.DeepSpotNet3D(
+            input_channels=config.get('input_channels', 1),
+            dropout_rate=config.get('dropout_rate', 0.2),
+            conv_block4_filters=config.get('conv_block4_filters', 128),
+            identity_block_filters=config.get('identity_block_filters', 128),
+        )
     else:
         raise ValueError(f"Model {config['name']} not recognized.")
     return model

@@ -4,5 +4,4 @@
 
 
 from .deepspot import DeepSpotNet
-
-__all__ = ['DeepSpotNet']
+from .deepspot3D import DeepSpotNet3D
