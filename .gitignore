@@ -20,3 +20,7 @@ aws/
 azureml/
 
 wandb/
+
+transfer_weights.py
+
+shooting_range.py
