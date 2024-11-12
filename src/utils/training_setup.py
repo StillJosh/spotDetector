@@ -169,16 +169,17 @@ def get_dataset(dataset: Callable, config: Dict[str, Any], debug: bool) -> Tuple
     """
 
     root_dir = Path(config['data']['root_dir'])
-    if config['data']['dataset'].endswith('_s3'):
-        metadata = pl.read_csv(
-            boto3.client('s3')
-            .get_object(Bucket='tunamlbucket', Key='spotDetection/metadata_full.csv')['Body']
-            .read())
-    else:
-        metadata = pl.read_csv(root_dir / 'metadata_full.csv')
 
-    metadata = metadata.filter((pl.col('bit_depth') == config['data']['bit_depth']) &
+    metadata_train = pl.read_csv(root_dir / 'metadata_train.csv')
+    metadata_val = pl.read_csv(root_dir / 'metadata_val.csv')
+
+    metadata_train = metadata_train.filter((pl.col('bit_depth') == config['data']['bit_depth']) &
+                                           (pl.col('mode') == config['data']['mode']))
+    metadata_val = metadata_val.filter((pl.col('bit_depth') == config['data']['bit_depth']) &
                                (pl.col('mode') == config['data']['mode']))
+
+    metadata_train = metadata_train.filter(pl.col('image_name').str.contains('Red'))
+    metadata_val = metadata_val.filter(pl.col('image_name').str.contains('Red'))
 
 
     # Data loaders
