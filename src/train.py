@@ -119,16 +119,12 @@ debug = False
 device = get_device()
 
 if __name__ == '__main__':
-    import os
-    wandb.login(key=os.getenv('WANDB_API_KEY'))
 
     config = load_config(Path(__file__).parent / 'config' / 'config.yaml')
 
-    # Attach input data if provided
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--input_data', type=str)
-    args = parser.parse_args()
-    if args.input_data is not None:
-        config['data']['root_dir'] = args.input_data
-
+    # W&B setup
+    wandb.login(key=os.getenv('WANDB_API_KEY'))
+    wandb.init(project='spotDetector',
+               config={**config['training'], **config['model'], **config['data']})
+    
     main(config)
