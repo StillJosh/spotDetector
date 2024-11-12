@@ -41,7 +41,7 @@ def setup_training_components(
     """
 
     # Model
-    model = get_model(config['model'])
+    model = get_model(config)
     model = model.to(device)
 
     def get_cuda_device_ids():
@@ -127,7 +127,7 @@ def get_model(config: Dict[str, Any]) -> nn.Module:
         Initialized model.
     """
 
-    if config['name'] == 'deepspot':
+    if config['model']['name'] == 'deepspot':
         model = models.DeepSpotNet(
             input_channels=config.get('input_channels', 1),
             dropout_rate=config.get('dropout_rate', 0.2),
