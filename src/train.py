@@ -16,18 +16,18 @@ from inference.inferencer import Inferencer
 from utils.config_parser import load_config
 from utils.logging import logger
 from utils.tools import CheckpointSaver, EarlyStopping, get_device
-from utils.training_setup import setup_training_components
+from utils import training_setup as ts
 
 
 def main(config: Dict[str, Any]):
     # Device management
     # Setup training components
-    model, train_loader, val_loader, criterion, optimizer, scheduler = setup_training_components(config, device,
-                                                                                                 debug=debug)
 
-    # W&B setup
-    wandb.init(project='spotDetector',
-               config={**config['training'], **config['model'], **config['data']})  # Initialize a W&B run with config
+    model = ts.get_model(config)
+    train_loader, val_loader = ts.get_dataloaders(config)
+    criterion = ts.get_loss_function(config)
+    optimizer = ts.get_optimizer(config, model)
+    scheduler = ts.get_scheduler(config, optimizer)
 
     # Early stopping
     early_stopping = EarlyStopping(
