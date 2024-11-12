@@ -23,8 +23,10 @@ class DeepSpotDataset(Dataset):
 
     Parameters
     ----------
-    data_dir : Union[str, Path]
-        Directory containing image files.
+    patches : h5py.Dataset
+        HDF5 file containing the image patches.
+    labels : h5py.Dataset
+        HDF5 file containing the label patches.
     input_size : Tuple[int, int]
         Desired input size (height, width).
     augmentations : Dict[str, Any]
@@ -48,16 +50,16 @@ class DeepSpotDataset(Dataset):
 
     def __init__(
         self,
-        data_dir: Union[str, Path],
+        patches: h5py.Dataset,
+        labels: h5py.Dataset,
         metadata: pl.DataFrame,
         input_size: Tuple[int, int] = (256, 256),
         augmentations: Optional[Dict[str, Any]] = None,
+        is_train: bool = True,
         debug: bool = False,
     ):
-        self.data_dir = data_dir
-        self.dataset_hdf5 = None
-        self.patches = None
-        self.labels = None
+        self.patches = patches
+        self.labels = labels
 
         self.input_size = input_size
         self.metadata = metadata
@@ -75,11 +77,6 @@ class DeepSpotDataset(Dataset):
         return len(self.metadata)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
-        if self.dataset_hdf5 is None:
-            self.dataset_hdf5 = h5py.File(self.data_dir, 'r')
-            self.patches = self.dataset_hdf5['patches']
-            self.labels = self.dataset_hdf5['labels']
-
         num_image = self.metadata['num_image'][idx]
         image, label = self.patches[num_image], self.labels[num_image]
         image, label = self.transform(image, label)
