@@ -142,7 +142,11 @@ def get_model(config: Dict[str, Any]) -> nn.Module:
             identity_block_filters=config.get('identity_block_filters', 128),
         )
     else:
-        raise ValueError(f"Model {config['name']} not recognized.")
+        raise ValueError(f"Model {config['model']['name']} not recognized.")
+
+    if config['model']['pretrained'] != 'None' and config['model']['pretrained'] != '':
+        pretrained_path = Path(config['data']['root_dir']).joinpath('pretrained_models', config['model']['pretrained'])
+        model.load_state_dict(torch.load(pretrained_path, weights_only=True))
     return model
 
 
