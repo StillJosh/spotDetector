@@ -54,7 +54,7 @@ def main(config: Dict[str, Any]):
 
         with tqdm(train_loader, desc=f"Epoch [{epoch + 1}/{config['training']['epochs']}] - Training",
                   file=sys.stdout, ascii=True, ncols=80, mininterval=30) as t:
-            for inputs, labels in t:
+            for inputs, labels, _ in t:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 optimizer.zero_grad()
@@ -78,7 +78,7 @@ def main(config: Dict[str, Any]):
         with torch.no_grad():
             with tqdm(val_loader, desc=f"Epoch [{epoch + 1}/{config['training']['epochs']}] - Validation",
                       file=sys.stdout, ascii=True, ncols=80) as t:
-                for inputs, labels in t:
+                for inputs, labels, _ in t:
                     inputs = inputs.to(device)
                     labels = labels.to(device)
                     outputs = model(inputs)
