@@ -7,13 +7,12 @@
 # utils/dataset.py
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from PIL import Image
+import h5py
+import polars as pl
 import torch
 from torch.utils.data import Dataset
-import torchvision.transforms as transforms
-import polars as pl
 
 from datasets.transformations import twoDTransforms, threeDTransforms
 
@@ -55,7 +54,11 @@ class DeepSpotDataset(Dataset):
         augmentations: Optional[Dict[str, Any]] = None,
         debug: bool = False,
     ):
-        self.data_dir = Path(data_dir)
+        self.data_dir = data_dir
+        self.dataset_hdf5 = None
+        self.patches = None
+        self.labels = None
+
         self.input_size = input_size
         self.metadata = metadata
         self.debug = debug
@@ -65,35 +68,21 @@ class DeepSpotDataset(Dataset):
 
         self.transform = threeDTransforms(self.input_size, augmentations)
 
-    def load_image(self, row: pl.DataFrame) -> Tuple[Image, Image]:
-        """
-        Load an image from the specified path and convert it to grayscale.
-
-        Parameters
-        ----------
-        image_path: str
-            Path to the image file.
-
-        Returns
-        -------
-        Image
-            Grayscale image.
-        """
-        file_path = self.data_dir / row[0, 'file_path']
-        label_path = self.data_dir / row[0, 'label_path']
-        return Image.open(file_path), Image.open(label_path)
-
 
     def __len__(self) -> int:
         if self.debug:
             return min(2, len(self.metadata))
         return len(self.metadata)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        row = self.metadata[idx]
-        image, label = self.load_image(row)
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
+        if self.dataset_hdf5 is None:
+            self.dataset_hdf5 = h5py.File(self.data_dir, 'r')
+            self.patches = self.dataset_hdf5['patches']
+            self.labels = self.dataset_hdf5['labels']
+
+        num_image = self.metadata['num_image'][idx]
+        image, label = self.patches[num_image], self.labels[num_image]
         image, label = self.transform(image, label)
 
-        return image, image.clone()
-
+        return image, label, idx
 
