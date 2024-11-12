@@ -8,11 +8,21 @@ from typing import List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
 
+from plotting.plotting_utils import get_auto_contrast
+
+color_dict = {
+    'red': LinearSegmentedColormap.from_list('RedLUT', [(0, 0, 0), (1, 0, 0)]),
+    'green': LinearSegmentedColormap.from_list('GreenLUT', [(0, 0, 0), (0, 1, 0)]),
+    'cyan': LinearSegmentedColormap.from_list('CyanLUT', [(0, 0, 0), (0, 1, 1)])
+}
 
 def plot_inference_comparison(
         original_image: np.ndarray,
+        labeled_image: np.ndarray,
         inference_image: np.ndarray,
+        cmap: Optional[str] = 'viridis',
         title: Optional[str] = None,
         axes: Optional[Union[plt.Axes, Tuple[plt.Axes, plt.Axes]]] = None,
         save_path: Optional[str] = None
@@ -24,8 +34,12 @@ def plot_inference_comparison(
     ----------
     original_image : np.ndarray
         The original image with shape (Y, X).
+    labeled_image : np.ndarray
+        The labeled image with shape (Y, X).
     inference_image : np.ndarray
         The inference image with shape (Y, X).
+    cmap : Optional[str], default=viridis
+        colormap to use for the original_image. If None, viridis will be used.
     title : Optional[str], default=None
         Title for the plot.
     axes : Optional[Union[plt.Axes, Tuple[plt.Axes, plt.Axes]]], default=None
@@ -39,7 +53,7 @@ def plot_inference_comparison(
 
     # Create figure and axes if not provided
     if axes is None:
-        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
         close_after_plotting = True  # Close figure after plotting if axes are created internally
     else:
         close_after_plotting = False
@@ -48,15 +62,25 @@ def plot_inference_comparison(
     if not isinstance(axes, (list, tuple, np.ndarray)):
         axes = [axes, axes]
 
+    if cmap in ['red', 'green', 'cyan']:
+        cmap = color_dict[cmap]
+
+    vmin, vmax = get_auto_contrast(original_image)
+
     # Plot original image
-    axes[0].imshow(original_image, cmap='viridis')
+    axes[0].imshow(original_image, cmap=cmap, vmin=vmin, vmax=vmax)
     axes[0].set_title('Original Image')
     axes[0].axis('off')  # Remove axis ticks
 
-    # Plot inference image
-    axes[1].imshow(inference_image, cmap='viridis')
-    axes[1].set_title('Inference Image')
+    # Plot original image
+    axes[1].imshow(labeled_image, cmap='viridis')
+    axes[1].set_title('Labeled Image')
     axes[1].axis('off')  # Remove axis ticks
+
+    # Plot inference image
+    axes[2].imshow(inference_image, cmap='viridis')
+    axes[2].set_title('Inference Image')
+    axes[2].axis('off')  # Remove axis ticks
 
     # Set the title if provided
     if title:
@@ -75,7 +99,9 @@ def plot_inference_comparison(
 
 def plot_multiple_comparisons(
         original_images: np.ndarray,
+        labeled_images: np.ndarray,
         inference_images: np.ndarray,
+        cmaps: Optional[List[str]] = None,
         title: Optional[str] = None,
         save_path: Optional[str] = None,
         show: bool = False
@@ -87,8 +113,12 @@ def plot_multiple_comparisons(
     ----------
     original_images : np.ndarray
         List of original images, each with shape (Y, X).
+    labeled_images : np.ndarray
+        List of labeled images, each with shape (Y, X).
     inference_images : np.ndarray
         List of inference images, each with shape (Y, X).
+    cmaps : Optional[List[str]], default=None
+        List of colors to use for the original_images. If None, a default list of colors will be used.
     title : Optional[str], default=None
         Title for the plot.
     save_path : Optional[str], default=None
