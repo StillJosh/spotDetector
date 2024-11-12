@@ -134,22 +134,37 @@ def plot_multiple_comparisons(
     if len(original_images) != len(inference_images):
         raise ValueError("Number of original images must match number of inference images.")
 
-    n_rows = len(original_images)
+    # If images contian
+    n_rows = len(original_images) if original_images.ndim == 3 else len(original_images) * original_images.shape[1]
+    n_rows = min(n_rows, 48)
 
-    # Create the figure with 2*n_rows subplots (2 per row: original and inference)
-    fig, axes = plt.subplots(n_rows, 2, figsize=(10, 5 * n_rows))
+    # Create the figure with 3*n_rows subplots (3 per row: original, label, and inference)
+    fig, axes = plt.subplots(n_rows, 3, figsize=(15, 5 * n_rows))
 
     # If only one row, make axes a list to ensure consistency
     if n_rows == 1:
         axes = [axes]
 
     for i in range(n_rows):
-        plot_inference_comparison(
-            original_image=original_images[i],
-            inference_image=inference_images[i],
-            axes=axes[i],
-            title=f'Comparison {i + 1}'
-        )
+        if original_images.ndim == 4:
+            z_stacks = original_images.shape[1]
+            plot_inference_comparison(
+                original_image=original_images[i // z_stacks, i % z_stacks],
+                labeled_image=labeled_images[i // z_stacks, i % z_stacks],
+                inference_image=inference_images[i // z_stacks, i % z_stacks],
+                cmap=cmaps[i // z_stacks] if cmaps is not None else None,
+                axes=axes[i],
+                title=f'Comparison {i + 1}'
+            )
+        else:
+            plot_inference_comparison(
+                original_image=original_images[i],
+                labeled_image=labeled_images[i],
+                inference_image=inference_images[i],
+                cmap=cmaps[i],
+                axes=axes[i],
+                title=f'Comparison {i + 1}'
+            )
 
     # Set the overall title
     if title:
