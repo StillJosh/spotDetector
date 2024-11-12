@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import polars as pl
 
-from .transformations import CustomTransforms
+from datasets.transformations import twoDTransforms, threeDTransforms
 
 
 class DeepSpotDataset(Dataset):
@@ -63,7 +63,7 @@ class DeepSpotDataset(Dataset):
         if augmentations is None:
             augmentations = {}
 
-        self.transform = CustomTransforms(self.input_size, augmentations)
+        self.transform = threeDTransforms(self.input_size, augmentations)
 
     def load_image(self, row: pl.DataFrame) -> Tuple[Image, Image]:
         """
@@ -95,69 +95,5 @@ class DeepSpotDataset(Dataset):
         image, label = self.transform(image, label)
 
         return image, image.clone()
-
-    def get_transform(self, augmentations: Dict[str, Any], is_label: bool) -> Callable:
-        """
-        Create a transformation pipeline based on the augmentations specified.
-
-        Parameters
-        ----------
-        augmentations : Dict[str, Any]
-            Dictionary specifying augmentations and their parameters.
-        is_label : bool
-            Whether the transformation is for labels.
-
-        Returns
-        -------
-        Callable
-            Transformation pipeline.
-        """
-        transform_list = []
-
-        # Resize
-        resize = transforms.Resize(self.input_size)
-        transform_list.append(resize)
-
-        # Data augmentations (only applied to images, not labels)
-        if not is_label:
-            if augmentations.get('horizontal_flip', False):
-                transform_list.append(transforms.RandomHorizontalFlip())
-
-            if augmentations.get('vertical_flip', False):
-                transform_list.append(transforms.RandomVerticalFlip())
-
-            if augmentations.get('rotation', False):
-                degrees = augmentations.get('rotation_degrees', 90)
-                transform_list.append(transforms.RandomRotation(degrees))
-
-            if augmentations.get('color_jitter', False):
-                brightness = augmentations.get('brightness', 0.2)
-                contrast = augmentations.get('contrast', 0.2)
-                saturation = augmentations.get('saturation', 0.2)
-                hue = augmentations.get('hue', 0.1)
-                transform_list.append(
-                    transforms.ColorJitter(
-                        brightness=brightness,
-                        contrast=contrast,
-                        saturation=saturation,
-                        hue=hue,
-                    )
-                )
-
-        # To Tensor
-        if not is_label:
-            transform_list.append(transforms.ToTensor())
-            # Normalize if mean and std are provided
-            if 'mean' in augmentations and 'std' in augmentations:
-                mean = augmentations['mean']
-                std = augmentations['std']
-                transform_list.append(transforms.Normalize(mean=mean, std=std))
-        else:
-            transform_list.append(transforms.PILToTensor())
-            # For labels, ensure the tensor is of type long (for loss functions like CrossEntropyLoss)
-            transform_list.append(transforms.Lambda(lambda x: x.squeeze().long()))
-
-        return transforms.Compose(transform_list)
-
 
 
