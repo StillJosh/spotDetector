@@ -20,9 +20,9 @@ from utils.tools import CheckpointSaver, EarlyStopping, get_device
 
 
 def main(config: Dict[str, Any]):
-    # Device management
+    device = config['device']
+    
     # Setup training components
-
     model = ts.get_model(config)
     train_loader, val_loader = ts.get_dataloaders(config)
     criterion = ts.get_loss_function(config)
