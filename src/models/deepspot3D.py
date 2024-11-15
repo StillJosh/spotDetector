@@ -8,223 +8,6 @@ from typing import List
 
 import torch
 import torch.nn as nn
-from torchvision.transforms import CenterCrop
-
-class IdentityBlock(nn.Module):
-    """
-    Identity block for the ResNet architecture (3D version).
-
-    Parameters
-    ----------
-    in_channels : int
-        Number of input channels.
-    filters : List[int]
-        List of filter sizes [F1, F2, F3].
-    kernel_size : int, optional
-        Kernel size for the middle convolutional layer. Default is 3.
-    dropout_rate : float, optional
-        Dropout rate. Default is 0.3.
-    """
-
-    def __init__(
-        self,
-        in_channels: int,
-        filters: List[int],
-        kernel_size: int = 3,
-        dropout_rate: float = 0.3,
-    ):
-        super(IdentityBlock, self).__init__()
-        f1, f2, f3 = filters
-
-        self.bn1 = nn.BatchNorm3d(in_channels, momentum=0.99, eps=1e-3)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv3d(in_channels, f1, kernel_size=1, stride=1, padding=0)
-
-        self.bn2 = nn.BatchNorm3d(f1, momentum=0.99, eps=1e-3)
-        self.conv2 = nn.Conv3d(
-            f1, f2, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
-        )
-
-        self.bn3 = nn.BatchNorm3d(f2, momentum=0.99, eps=1e-3)
-        self.conv3 = nn.Conv3d(f2, f3, kernel_size=1, stride=1, padding=0)
-
-        self.dropout = nn.Dropout3d(dropout_rate)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        shortcut = x
-
-        out = self.bn1(x)
-        out = self.relu(out)
-        out = self.conv1(out)
-
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-
-        out = self.bn3(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-
-        out = self.dropout(out)
-
-        out += shortcut
-        return out
-
-
-class ConvBlock(nn.Module):
-    """
-    Convolutional block with a shortcut path (3D version).
-
-    Parameters
-    ----------
-    in_channels : int
-        Number of input channels.
-    filters : List[int]
-        List of filter sizes [F1, F2, F3].
-    kernel_size : int, optional
-        Kernel size for the middle convolutional layer. Default is 3.
-    stride : int, optional
-        Stride for the first convolutional layer. Default is 2.
-    dropout_rate : float, optional
-        Dropout rate. Default is 0.1.
-    """
-
-    def __init__(
-        self,
-        in_channels: int,
-        filters: List[int],
-        kernel_size: int = 3,
-        stride: int = 2,
-        dropout_rate: float = 0.1,
-    ):
-        super(ConvBlock, self).__init__()
-        f1, f2, f3 = filters
-
-        self.bn1 = nn.BatchNorm3d(in_channels, momentum=0.99, eps=1e-3)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv3d(
-            in_channels, f1, kernel_size=1, stride=stride, padding=0
-        )
-
-        self.bn2 = nn.BatchNorm3d(f1, momentum=0.99, eps=1e-3)
-        self.conv2 = nn.Conv3d(
-            f1, f2, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
-        )
-
-        self.bn3 = nn.BatchNorm3d(f2, momentum=0.99, eps=1e-3)
-        self.conv3 = nn.Conv3d(f2, f3, kernel_size=1, stride=1, padding=0)
-
-        self.dropout = nn.Dropout3d(dropout_rate)
-
-        # Shortcut path
-        self.shortcut_conv = nn.Conv3d(
-            in_channels, f3, kernel_size=1, stride=stride, padding=0
-        )
-        self.shortcut_bn = nn.BatchNorm3d(f3, momentum=0.99, eps=1e-3)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        shortcut = self.shortcut_conv(x)
-        shortcut = self.shortcut_bn(shortcut)
-
-        out = self.bn1(x)
-        out = self.relu(out)
-        out = self.conv1(out)
-
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-
-        out = self.bn3(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-
-        out = self.dropout(out)
-
-        out += shortcut
-        return out
-
-
-class ConvUpBlock(nn.Module):
-    """
-    Transposed convolutional block for upsampling with a shortcut path (3D version).
-
-    Parameters
-    ----------
-    in_channels : int
-        Number of input channels.
-    filters : List[int]
-        List of filter sizes [F1, F2, F3].
-    stride : int, optional
-        Stride for the transposed convolutional layer. Default is 2.
-    dropout_rate : float, optional
-        Dropout rate. Default is 0.1.
-    """
-
-    def __init__(
-        self,
-        in_channels: int,
-        filters: List[int],
-        stride: int = 2,
-        dropout_rate: float = 0.1,
-    ):
-        super(ConvUpBlock, self).__init__()
-        f1, f2, f3 = filters
-
-        self.conv_transpose1 = nn.ConvTranspose3d(
-            in_channels,
-            f1,
-            kernel_size=3,
-            stride=stride,
-            padding=1,
-            output_padding=stride - 1,
-        )
-        self.bn1 = nn.BatchNorm3d(f1, momentum=0.99, eps=1e-3)
-        self.relu = nn.ReLU(inplace=True)
-
-        self.conv_transpose2 = nn.ConvTranspose3d(
-            f1, f2, kernel_size=3, stride=1, padding=1
-        )
-        self.bn2 = nn.BatchNorm3d(f2, momentum=0.99, eps=1e-3)
-
-        self.conv_transpose3 = nn.ConvTranspose3d(
-            f2, f3, kernel_size=3, stride=1, padding=1
-        )
-        self.bn3 = nn.BatchNorm3d(f3, momentum=0.99, eps=1e-3)
-
-        self.dropout = nn.Dropout3d(dropout_rate)
-
-        # Shortcut path
-        self.shortcut_conv_transpose = nn.ConvTranspose3d(
-            in_channels,
-            f2,
-            kernel_size=3,
-            stride=stride,
-            padding=1,
-            output_padding=stride - 1,
-        )
-        self.shortcut_bn = nn.BatchNorm3d(f2, momentum=0.99, eps=1e-3)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        shortcut = self.shortcut_conv_transpose(x)
-        shortcut = self.shortcut_bn(shortcut)
-
-        out = self.conv_transpose1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv_transpose2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv_transpose3(out)
-        out = self.bn3(out)
-
-        out = self.dropout(out)
-
-        out += shortcut
-        out = self.relu(out)
-
-        return out
 
 
 class DeepSpotNet3D(nn.Module):
@@ -400,6 +183,223 @@ class DeepSpotNet3D(nn.Module):
         #crop = CenterCrop(input_shape)
         #x = x[:, :, input_shape[2] // 2, : input_shape[3], : input_shape[4]]
         return x
+
+
+class IdentityBlock(nn.Module):
+    """
+    Identity block for the ResNet architecture (3D version).
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of input channels.
+    filters : List[int]
+        List of filter sizes [F1, F2, F3].
+    kernel_size : int, optional
+        Kernel size for the middle convolutional layer. Default is 3.
+    dropout_rate : float, optional
+        Dropout rate. Default is 0.3.
+    """
+
+    def __init__(
+            self,
+            in_channels: int,
+            filters: List[int],
+            kernel_size: int = 3,
+            dropout_rate: float = 0.3,
+    ):
+        super(IdentityBlock, self).__init__()
+        f1, f2, f3 = filters
+
+        self.bn1 = nn.BatchNorm3d(in_channels, momentum=0.99, eps=1e-3)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv1 = nn.Conv3d(in_channels, f1, kernel_size=1, stride=1, padding=0)
+
+        self.bn2 = nn.BatchNorm3d(f1, momentum=0.99, eps=1e-3)
+        self.conv2 = nn.Conv3d(
+            f1, f2, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
+
+        self.bn3 = nn.BatchNorm3d(f2, momentum=0.99, eps=1e-3)
+        self.conv3 = nn.Conv3d(f2, f3, kernel_size=1, stride=1, padding=0)
+
+        self.dropout = nn.Dropout3d(dropout_rate)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        shortcut = x
+
+        out = self.bn1(x)
+        out = self.relu(out)
+        out = self.conv1(out)
+
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+
+        out = self.bn3(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+
+        out = self.dropout(out)
+
+        out += shortcut
+        return out
+
+
+class ConvBlock(nn.Module):
+    """
+    Convolutional block with a shortcut path (3D version).
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of input channels.
+    filters : List[int]
+        List of filter sizes [F1, F2, F3].
+    kernel_size : int, optional
+        Kernel size for the middle convolutional layer. Default is 3.
+    stride : int, optional
+        Stride for the first convolutional layer. Default is 2.
+    dropout_rate : float, optional
+        Dropout rate. Default is 0.1.
+    """
+
+    def __init__(
+            self,
+            in_channels: int,
+            filters: List[int],
+            kernel_size: int = 3,
+            stride: int = 2,
+            dropout_rate: float = 0.1,
+    ):
+        super(ConvBlock, self).__init__()
+        f1, f2, f3 = filters
+
+        self.bn1 = nn.BatchNorm3d(in_channels, momentum=0.99, eps=1e-3)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv1 = nn.Conv3d(
+            in_channels, f1, kernel_size=1, stride=stride, padding=0
+        )
+
+        self.bn2 = nn.BatchNorm3d(f1, momentum=0.99, eps=1e-3)
+        self.conv2 = nn.Conv3d(
+            f1, f2, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
+
+        self.bn3 = nn.BatchNorm3d(f2, momentum=0.99, eps=1e-3)
+        self.conv3 = nn.Conv3d(f2, f3, kernel_size=1, stride=1, padding=0)
+
+        self.dropout = nn.Dropout3d(dropout_rate)
+
+        # Shortcut path
+        self.shortcut_conv = nn.Conv3d(
+            in_channels, f3, kernel_size=1, stride=stride, padding=0
+        )
+        self.shortcut_bn = nn.BatchNorm3d(f3, momentum=0.99, eps=1e-3)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        shortcut = self.shortcut_conv(x)
+        shortcut = self.shortcut_bn(shortcut)
+
+        out = self.bn1(x)
+        out = self.relu(out)
+        out = self.conv1(out)
+
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+
+        out = self.bn3(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+
+        out = self.dropout(out)
+
+        out += shortcut
+        return out
+
+
+class ConvUpBlock(nn.Module):
+    """
+    Transposed convolutional block for upsampling with a shortcut path (3D version).
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of input channels.
+    filters : List[int]
+        List of filter sizes [F1, F2, F3].
+    stride : int, optional
+        Stride for the transposed convolutional layer. Default is 2.
+    dropout_rate : float, optional
+        Dropout rate. Default is 0.1.
+    """
+
+    def __init__(
+            self,
+            in_channels: int,
+            filters: List[int],
+            stride: int = 2,
+            dropout_rate: float = 0.1,
+    ):
+        super(ConvUpBlock, self).__init__()
+        f1, f2, f3 = filters
+
+        self.conv_transpose1 = nn.ConvTranspose3d(
+            in_channels,
+            f1,
+            kernel_size=3,
+            stride=stride,
+            padding=1,
+            output_padding=stride - 1,
+        )
+        self.bn1 = nn.BatchNorm3d(f1, momentum=0.99, eps=1e-3)
+        self.relu = nn.ReLU(inplace=True)
+
+        self.conv_transpose2 = nn.ConvTranspose3d(
+            f1, f2, kernel_size=3, stride=1, padding=1
+        )
+        self.bn2 = nn.BatchNorm3d(f2, momentum=0.99, eps=1e-3)
+
+        self.conv_transpose3 = nn.ConvTranspose3d(
+            f2, f3, kernel_size=3, stride=1, padding=1
+        )
+        self.bn3 = nn.BatchNorm3d(f3, momentum=0.99, eps=1e-3)
+
+        self.dropout = nn.Dropout3d(dropout_rate)
+
+        # Shortcut path
+        self.shortcut_conv_transpose = nn.ConvTranspose3d(
+            in_channels,
+            f2,
+            kernel_size=3,
+            stride=stride,
+            padding=1,
+            output_padding=stride - 1,
+        )
+        self.shortcut_bn = nn.BatchNorm3d(f2, momentum=0.99, eps=1e-3)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        shortcut = self.shortcut_conv_transpose(x)
+        shortcut = self.shortcut_bn(shortcut)
+
+        out = self.conv_transpose1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv_transpose2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv_transpose3(out)
+        out = self.bn3(out)
+
+        out = self.dropout(out)
+
+        out += shortcut
+        out = self.relu(out)
+
+        return out
 
 """
 model = DeepSpotNet3D().to('cpu')
