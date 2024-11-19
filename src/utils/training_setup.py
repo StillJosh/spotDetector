@@ -51,10 +51,14 @@ def get_model(config: Dict[str, Any]) -> nn.Module:
     else:
         raise ValueError(f"Model {config['model']['name']} not recognized.")
 
+    if config['device'] == 'cuda' and torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+
     if config['model']['pretrained'] != 'None' and config['model']['pretrained'] != '':
         pretrained_path = Path(config['data']['root_dir']).joinpath('pretrained_models', config['model']['pretrained'])
         model.load_state_dict(torch.load(pretrained_path, weights_only=True))
 
+    model.to(config['device'])
     return model
 
 
