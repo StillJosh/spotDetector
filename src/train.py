@@ -75,9 +75,6 @@ def main(config: Dict[str, Any]):
     images, labels, preds, colors = get_images_for_plotting(model, val_loader, device)
     fig = plot_multiple_comparisons(images, labels, preds, cmaps=colors, title="Inference Comparison")
     wandb.log({"inference_comparison": wandb.Image(fig), 'epoch': 0})
-    # Log parameters
-    wandb.config.update(config['training'])
-    wandb.config.update(config['model'])
 
     for epoch in range(config['training']['epochs']):
         model.train()
