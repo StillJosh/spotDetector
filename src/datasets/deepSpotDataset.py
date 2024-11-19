@@ -50,16 +50,17 @@ class DeepSpotDataset(Dataset):
 
     def __init__(
         self,
-        patches: h5py.Dataset,
-        labels: h5py.Dataset,
+        data_file: Path | str,
         metadata: pl.DataFrame,
         input_size: Tuple[int, int] = (256, 256),
         augmentations: Optional[Dict[str, Any]] = None,
         is_train: bool = True,
         debug: bool = False,
     ):
-        self.patches = patches
-        self.labels = labels
+        # h5py files cannot be pickled, so they must be loaded from each worker
+        self.data_file = data_file
+        self.patches = None
+        self.labels = None
 
         self.input_size = input_size
         self.metadata = metadata
@@ -77,7 +78,12 @@ class DeepSpotDataset(Dataset):
         return len(self.metadata)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
-        num_image = self.metadata['num_image'][idx]
+        if self.patches is None:
+            data = h5py.File(self.data_file, 'r')
+            self.patches = data['patches']
+            self.labels = data['labels']
+
+        num_image = self.metadata[idx, 'patch_num']
         image, label = self.patches[num_image], self.labels[num_image]
         image, label = self.transform(image, label)
 

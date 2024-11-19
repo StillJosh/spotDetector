@@ -58,7 +58,7 @@ def get_model(config: Dict[str, Any]) -> nn.Module:
     return model
 
 
-def get_dataloaders(config: Dict[str, Any], debug: bool) -> Tuple[DataLoader, DataLoader]:
+def get_dataloaders(config: Dict[str, Any]) -> Tuple[DataLoader, DataLoader]:
     """
     Loads train and val data (incl. metadata) and returns the corresponding data loaders.
 
@@ -84,13 +84,9 @@ def get_dataloaders(config: Dict[str, Any], debug: bool) -> Tuple[DataLoader, Da
     # Load and filter metadata for training and validation
     metadata_train, metadata_val = _load_metadata(config, data_dir)
 
-    train_data = h5py.File(data_dir / config['data']['train_file'], 'r')
-    val_data = h5py.File(data_dir / config['data']['val_file'], 'r')
-
     # Data loaders
     train_dataset = dataset(
-        patches=train_data['patches'],
-        labels=train_data['labels'],
+        data_file=data_dir / config['data']['train_file'],
         metadata=metadata_train,
         input_size=tuple(config['data']['input_size']),
         augmentations=config['data']['augmentations'],
@@ -106,8 +102,7 @@ def get_dataloaders(config: Dict[str, Any], debug: bool) -> Tuple[DataLoader, Da
     )
 
     val_dataset = dataset(
-        patches=val_data['patches'],
-        labels=val_data['labels'],
+        data_file=data_dir / config['data']['val_file'],
         metadata=metadata_val,
         input_size=tuple(config['data']['input_size']),
         augmentations=config['data']['augmentations'],
