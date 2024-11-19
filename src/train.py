@@ -8,20 +8,54 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
+import numpy as np
 import torch
 import wandb  # Import Weights and Biases
 from tqdm import tqdm
 
-from inference.inferencer import Inferencer
+from plotting.inference_plotting import plot_multiple_comparisons
 from utils import training_setup as ts
 from utils.config_parser import load_config
-from utils.logging import logger
-from utils.tools import CheckpointSaver, EarlyStopping, get_device
+from utils.logger import logger
+from utils.tools import CheckpointSaver, EarlyStopping
+
+
+def get_images_for_plotting(model, dataloader, device, num_images=48):
+    model.eval()
+    num_images = min(num_images, len(dataloader.dataset))
+    image_res, label_res, pred_res, colors = [], [], [], []
+
+    for images, labels, idxs in dataloader:
+        if len(image_res) >= num_images:
+            break
+
+        with torch.no_grad():
+            predictions = model(images.to(device)).cpu()
+
+        batch_size = images.shape[0]
+        for i in range(batch_size):
+            if images[i].ndim == 4:  # For 3D images, extract 3 slices per image
+                depth = images[i].shape[2]
+                slide_index = np.random.choice(np.arange(1, depth - 1), size=1)
+                img = images[i][0, slide_index - 1:slide_index + 2, :, :]  # Extract slices (Channels, 3, Height, Width)
+                lab = labels[i][0, slide_index - 1:slide_index + 2, :, :]
+                pred = predictions[i][0, slide_index - 1:slide_index + 2, :, :]
+            else:
+                img = images[i]
+                lab = labels[i]
+                pred = predictions[i]
+
+            image_res.extend([im for im in img])
+            label_res.extend([lab for lab in lab])
+            pred_res.extend([pr for pr in pred])
+            colors.extend(dataloader.dataset.metadata[idxs.cpu().numpy(), 'color'])
+
+    return image_res[:num_images], label_res[:num_images], pred_res[:num_images], colors[:num_images]
 
 
 def main(config: Dict[str, Any]):
     device = config['device']
-    
+
     # Setup training components
     model = ts.get_model(config)
     train_loader, val_loader = ts.get_dataloaders(config)
@@ -38,15 +72,14 @@ def main(config: Dict[str, Any]):
     checkpoint_dir = Path(config['checkpoint']['dir'])
     checkpoint_saver = CheckpointSaver(checkpoint_dir, config)
 
-    # Inferencer for plotting
-    inf = Inferencer(model, *next(iter(val_loader)), device)
-
+    images, labels, preds, colors = get_images_for_plotting(model, val_loader, device)
+    fig = plot_multiple_comparisons(images, labels, preds, cmaps=colors, title="Inference Comparison")
+    wandb.log({"inference_comparison": wandb.Image(fig), 'epoch': 0})
     # Log parameters
     wandb.config.update(config['training'])
     wandb.config.update(config['model'])
 
     for epoch in range(config['training']['epochs']):
-        # Training phase
         model.train()
         running_loss = 0.0
 
@@ -88,7 +121,7 @@ def main(config: Dict[str, Any]):
                     t.set_postfix({"Val Loss": f"{loss.item():.4f}"})
 
         val_loss = val_running_loss / len(val_loader.dataset)
-        wandb.log({'val_loss': val_loss, 'epoch': epoch})  # Log validation loss
+        wandb.log({'val_loss': val_loss, 'epoch': epoch + 1})  # Log validation loss
         logger.info(f"Epoch [{epoch + 1}/{config['training']['epochs']}] - Validation loss: {val_loss:.4f}")
 
         # Learning rate scheduler step
@@ -107,8 +140,9 @@ def main(config: Dict[str, Any]):
         checkpoint_saver.save(model, val_loss)
 
         # Log inference comparison figure
-        fig = inf.plot_inference_comparison()
-        wandb.log({"inference_comparison": wandb.Image(fig)})  # Log figure to W&B
+        images, labels, preds, colors = get_images_for_plotting(model, val_loader, device)
+        fig = plot_multiple_comparisons(images, labels, preds, cmaps=colors, title="Inference Comparison")
+        wandb.log({"inference_comparison": wandb.Image(fig), 'epoch': epoch + 1})
         logger.info(f"Logged inference comparison figure for epoch {epoch + 1}")
 
     logger.info("Training completed.")

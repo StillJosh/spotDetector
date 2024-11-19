@@ -24,7 +24,7 @@ def plot_inference_comparison(
         inference_image: np.ndarray,
         cmap: Optional[str] = 'viridis',
         title: Optional[str] = None,
-        axes: Optional[Union[plt.Axes, Tuple[plt.Axes, plt.Axes]]] = None,
+        axes: Optional[Union[plt.Axes, np.ndarray]] = None,
         save_path: Optional[str] = None
 ) -> None:
     """
@@ -58,10 +58,6 @@ def plot_inference_comparison(
     else:
         close_after_plotting = False
 
-    # Ensure axes is a tuple if not already
-    if not isinstance(axes, (list, tuple, np.ndarray)):
-        axes = [axes, axes]
-
     if cmap in ['red', 'green', 'cyan']:
         cmap = color_dict[cmap]
 
@@ -70,17 +66,17 @@ def plot_inference_comparison(
     # Plot original image
     axes[0].imshow(original_image, cmap=cmap, vmin=vmin, vmax=vmax)
     axes[0].set_title('Original Image')
-    axes[0].axis('off')  # Remove axis ticks
+    axes[0].axis('off')
 
-    # Plot original image
+    # Plot labeled image
     axes[1].imshow(labeled_image, cmap='viridis')
     axes[1].set_title('Labeled Image')
-    axes[1].axis('off')  # Remove axis ticks
+    axes[1].axis('off')
 
     # Plot inference image
     axes[2].imshow(inference_image, cmap='viridis')
     axes[2].set_title('Inference Image')
-    axes[2].axis('off')  # Remove axis ticks
+    axes[2].axis('off')
 
     # Set the title if provided
     if title:
@@ -88,7 +84,7 @@ def plot_inference_comparison(
 
     # Save the figure if save_path is provided
     if save_path is not None:
-        plt.savefig(save_path, bbox_inches='tight')
+        plt.savefig(save_path, bbox_inches='tight', dpi=400)
 
     # Show the plot
     if close_after_plotting:
@@ -104,10 +100,9 @@ def plot_multiple_comparisons(
         cmaps: Optional[List[str]] = None,
         title: Optional[str] = None,
         save_path: Optional[str] = None,
-        show: bool = False
 ) -> Optional[plt.Figure]:
     """
-    Plot multiple comparisons of original and inference images, stacked vertically.
+    Plot multiple comparisons of original, labeled, and inference images, stacked vertically.
 
     Parameters
     ----------
@@ -123,65 +118,40 @@ def plot_multiple_comparisons(
         Title for the plot.
     save_path : Optional[str], default=None
         If provided, saves the figure to the specified file path.
-    show : bool, default=False
-        If True, shows the plot.
 
     Returns
     -------
     Optional[plt.Figure]
         Returns the figure object if neither saving nor showing, otherwise returns None.
     """
-    if len(original_images) != len(inference_images):
-        raise ValueError("Number of original images must match number of inference images.")
+    if len(original_images) != len(inference_images) != len(labeled_images):
+        raise ValueError("Number of images must match number of labels and inference images.")
 
-    # If images contian
-    n_rows = len(original_images) if original_images.ndim == 3 else len(original_images) * original_images.shape[1]
-    n_rows = min(n_rows, 48)
+    if len(original_images) > 48:
+        raise ValueError("Number of images must be less than or equal to 48 to avoid overflow.")
 
+    n_rows = len(original_images)
     # Create the figure with 3*n_rows subplots (3 per row: original, label, and inference)
-    fig, axes = plt.subplots(n_rows, 3, figsize=(15, 5 * n_rows))
-
-    # If only one row, make axes a list to ensure consistency
-    if n_rows == 1:
-        axes = [axes]
+    fig, axes = plt.subplots(n_rows, 3, figsize=(15, 5 * n_rows), squeeze=False)
 
     for i in range(n_rows):
-        if original_images.ndim == 4:
-            z_stacks = original_images.shape[1]
-            plot_inference_comparison(
-                original_image=original_images[i // z_stacks, i % z_stacks],
-                labeled_image=labeled_images[i // z_stacks, i % z_stacks],
-                inference_image=inference_images[i // z_stacks, i % z_stacks],
-                cmap=cmaps[i // z_stacks] if cmaps is not None else None,
-                axes=axes[i],
-                title=f'Comparison {i + 1}'
-            )
-        else:
-            plot_inference_comparison(
-                original_image=original_images[i],
-                labeled_image=labeled_images[i],
-                inference_image=inference_images[i],
-                cmap=cmaps[i],
-                axes=axes[i],
-                title=f'Comparison {i + 1}'
-            )
+        plot_inference_comparison(
+            original_image=original_images[i],
+            labeled_image=labeled_images[i],
+            inference_image=inference_images[i],
+            cmap=cmaps[i],
+            axes=axes[i],
+            title=f'Comparison {i + 1}'
+        )
 
-    # Set the overall title
     if title:
         fig.suptitle(title, fontsize=16)
 
-    # Adjust layout
     plt.tight_layout()
 
     # Save the figure if a path is provided
     if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight')
-
-    # Show the figure if requested
-    if show:
-        plt.show()
-        plt.close(fig)
-        return None
 
     # If neither saving nor showing, return the figure object
     return fig
