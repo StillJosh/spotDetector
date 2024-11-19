@@ -247,13 +247,9 @@ def _load_metadata(config: Dict[str, Any], data_dir: Path) -> Tuple[pl.DataFrame
     metadata_train = pl.read_csv(data_dir / 'metadata_train.csv')
     metadata_val = pl.read_csv(data_dir / 'metadata_val.csv')
 
-    # Filter metadata based on training config
-    metadata_train = metadata_train.filter((pl.col('bit_depth') == config['data']['bit_depth']) &
-                                           (pl.col('mode') == config['data']['mode']))
-    metadata_val = metadata_val.filter((pl.col('bit_depth') == config['data']['bit_depth']) &
-                                       (pl.col('mode') == config['data']['mode']))
-    for filter_name in config['data']['filter_name']:
-        metadata_train = metadata_train.filter(pl.col('image_name').str.contains(filter_name))
-        metadata_val = metadata_val.filter(pl.col('image_name').str.contains(filter_name))
+    if config['data']['filter_name']:
+        for filter_name in config['data']['filter_name']:
+            metadata_train = metadata_train.filter(pl.col('image_name').str.contains(filter_name))
+            metadata_val = metadata_val.filter(pl.col('image_name').str.contains(filter_name))
 
     return metadata_train, metadata_val
