@@ -219,7 +219,6 @@ def get_scheduler(config: Dict[str, Any], optimizer: Optimizer) -> _LRScheduler:
             mode='min',
             factor=scheduler_params['factor'],
             patience=scheduler_params['patience'],
-            threshold=scheduler_params.get('threshold', 0.0001),
         )
     else:
         raise ValueError(f"Scheduler '{scheduler_name}' not recognized.")
