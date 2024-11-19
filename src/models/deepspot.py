@@ -5,8 +5,11 @@
 
 from typing import List
 
+import numpy as np
 import torch
 import torch.nn as nn
+
+from models import model_utils as mutils
 
 
 class DeepSpotNet(nn.Module):
@@ -155,6 +158,41 @@ class DeepSpotNet(nn.Module):
         x = self.sigmoid(x)
 
         return x
+
+    def infer_image(self, image: np.ndarray, patch_size: tuple[int, int] = (256, 256)):
+        """
+        Filter an image with the DeepSpot model. For large images, the image is split into patches and processed.
+
+        Parameters
+        ----------
+        image : np.ndarray
+            The image to filter.
+        patch_size : tuple[int, int], optional
+            The size of the patches. Default is (256, 256).
+        """
+
+        self.eval()
+        original_dim = image.shape
+        if image.ndim == 2:
+            image = np.expand_dims(image, 0)
+        if image.ndim == 3:
+            image = np.expand_dims(image, 0)
+
+        result = np.zeros_like(image)
+        image = torch.tensor(image, device=list(self.parameters())[0].device, dtype=torch.float32)
+        channels, z_stacks = image.shape[:2]
+
+        with torch.no_grad():
+            for channel in range(channels):
+                for z_stack in range(z_stacks):
+                    stack = mutils.split_array(image[channel, z_stack], patch_size)
+                    stack = self.forward(stack.unsqueeze(1)).squeeze(1)
+                    result[channel, z_stack] = mutils.merge_chunks(stack, image[channel, z_stack].shape)
+
+        self.train()
+
+        return result.reshape(original_dim)
+
 
 
 class IdentityBlock(nn.Module):
